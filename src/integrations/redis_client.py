@@ -8,7 +8,7 @@ r = redis.Redis(host='tcp.cloudpub.ru', port=35559, decode_responses=False)  # b
 
 """
     Создание таблицы erida-re(тестовая)
-    
+
 """
 #
 # key = "erida-re"
@@ -35,12 +35,11 @@ r = redis.Redis(host='tcp.cloudpub.ru', port=35559, decode_responses=False)  # b
     Чтение таблицы erida-re
 """
 
-
 result = r.hgetall("erida-re")
 for key, val in result.items():
-    try:
-        decoded = val.decode("utf-8")
-        print(f"{key.decode('utf-8')}: {decoded}")
-    except:
-        pass
+    decoded = val.decode("utf-8")
+    print(f"{key.decode('utf-8')}: {decoded}")
+
+
+
 
