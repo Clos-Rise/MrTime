@@ -1,69 +1,165 @@
 import redis
+import json
+from datetime import datetime
 
 r = redis.Redis(host='tcp.cloudpub.ru', port=35559, decode_responses=True)
 
-def write_to_db(key, mapping):
-    r.hset(key, mapping=mapping)
-
-def read_from_db(key):
-    return r.hgetall(key)
-
-def delete_field(key, field):
-    r.hdel(key, field)
-
-def list_keys(pattern="*"):
-    return r.keys(pattern)
-
-def available_key(key):
-    return r.exists(key)
-
-def available_field(key, field):
-    return r.hexists(key, field)
-
-def update_field(key, field, value):
-    r.hset(key, field, value)
-
-def backup_db():
-    try:
-        r.save()
-        return True
-    except Exception as e:
-        print(f"Ошибка резервного копирования: {e}")
-        return False
-
-def clear_db():
-    try:
-        r.flushdb()
-        return True
-    except Exception as e:
-        print(f"Ошибка очистки базы: {e}")
-        return False
-
-if __name__ == "__main__":
-    key = "erida-re"
-    field = "Name"
-    data = {
-        "Name": "Тестовая сущность",
-        "Info": "Просто описание для демонстрации",
-        "Source": "Автотест, Python-скрипт"
+def shablon(status, action, parameters, message):
+    return {
+        "status": status,
+        "tool": "Редиска",
+        "action": action,
+        "parameters": parameters,
+        "message": message,
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
 
-    write_to_db(key, data)
-    print(read_from_db(key))
+def create_project(proekt_id, name, description, stack, links):
+    project_data = {
+        "name": name,
+        "description": description,
+        "stack": stack,
+        "links": links
+    }
+    r.hset(proekt_id, mapping=project_data)
+    return shablon(
+        status="success",
+        action="create_project",
+        parameters={"proekt_id": proekt_id, "data": project_data},
+        message="Проект создан"
+    )
 
-    update_field(key, "Info", "описание намбер два")
-    print(read_from_db(key))
+def save_plan(proekt_id, plan):
+    r.hset(f"{proekt_id}:plan", "plan", json.dumps(plan, ensure_ascii=False))
+    return shablon(
+        status="success",
+        action="save_plan",
+        parameters={"proekt_id": proekt_id, "plan": plan},
+        message="План сохранен"
+    )
 
-    delete_field(key, "Source")
-    print(read_from_db(key))
+def get_plan(proekt_id):
+    plan = json.loads(r.hget(f"{proekt_id}:plan", "plan"))
+    return shablon(
+        status="success",
+        action="get_plan",
+        parameters={"proekt_id": proekt_id, "plan": plan},
+        message="План получен"
+    )
 
-    print(available_field(key, field))
+def save_tasks(proekt_id, tasks):
+    r.hset(f"{proekt_id}:tasks", "tasks", json.dumps(tasks, ensure_ascii=False))
+    return shablon(
+        status="success",
+        action="save_tasks",
+        parameters={"proekt_id": proekt_id, "tasks": tasks},
+        message="Задачи сохранены"
+    )
 
-    if backup_db():
-        print("Резервное копирование выполнено успешно.")
-    else:
-        print("Резервное копирование не удалось.")
+def get_tasks(proekt_id):
+    tasks = json.loads(r.hget(f"{proekt_id}:tasks", "tasks"))
+    return shablon(
+        status="success",
+        action="get_tasks",
+        parameters={"proekt_id": proekt_id, "tasks": tasks},
+        message="Задачи успешно получены"
+    )
 
-    # это бдшку под ноль снести
-    if clear_db():
-        print("База данных очищена.")
+def save_workers(workers_data):
+    workers_json = {key: json.dumps(value, ensure_ascii=False) for key, value in workers_data.items()}
+    r.hset("workers", mapping=workers_json)
+    return shablon(
+        status="success",
+        action="save_workers",
+        parameters={"workers": workers_data},
+        message="Данные о работниках успешно сохранены"
+    )
+
+def get_workers():
+    workers_raw = r.hgetall("workers")
+    workers = {key: json.loads(value) for key, value in workers_raw.items()}
+    return shablon(
+        status="success",
+        action="get_workers",
+        parameters={"workers": workers},
+        message="Данные о работниках получены"
+    )
+
+def save_assignments(proekt_id, assignments):
+    r.hset(f"{proekt_id}:assignments", "assignments", json.dumps(assignments, ensure_ascii=False))
+    return shablon(
+        status="success",
+        action="save_assignments",
+        parameters={"proekt_id": proekt_id, "assignments": assignments},
+        message="Распределение задач сохранено"
+    )
+
+def get_assignments(proekt_id):
+    assignments = json.loads(r.hget(f"{proekt_id}:assignments", "assignments"))
+    return shablon(
+        status="success",
+        action="get_assignments",
+        parameters={"proekt_id": proekt_id, "assignments": assignments},
+        message="Распределение задач получено"
+    )
+
+def backup_db():
+    r.save()
+    return shablon(
+        status="success",
+        action="backup_db",
+        parameters={},
+        message="Резервное копирование выполнено"
+    )
+
+def clear_db():
+    r.flushdb()
+    return shablon(
+        status="success",
+        action="clear_db",
+        parameters={},
+        message="База данных очищена"
+    )
+
+if __name__ == "__main__":
+    proekt_id = "project:test"
+    result = create_project(
+        proekt_id=proekt_id,
+        name="Project",
+        description="Разработка оружия",
+        stack="Принглс, Губка, Перчатки, Смазка",
+        links="https://penis.com"
+    )
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+
+    plan = {
+        "week1": "Разработка чего-нибудь",
+        "week2": "Настройка чего-нибудь",
+        "week3": "Тестирование чего-нибудь"
+    }
+    result = save_plan(proekt_id, plan)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+
+    result = get_plan(proekt_id)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+
+    tasks = [
+        {"task": "Настройка редиски", "description": "Настроить редиску"},
+    ]
+    result = save_tasks(proekt_id, tasks)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+
+    workers = {
+        "worker1": {"name": "Хесус", "skills": ["Политика", "Стримы"], "load": 0.5},
+    }
+    result = save_workers(workers)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+
+    assignments = [
+        {"task": "Разработка чего-нибудь", "timeline": "2 недели", "worker": "worker1"}
+    ]
+    result = save_assignments(proekt_id, assignments)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+
+    result = get_assignments(proekt_id)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
