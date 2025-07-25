@@ -1,4 +1,3 @@
-
 from typing import Dict, Any
 
 from agent.devstral_agent import DevstralAgent
@@ -41,7 +40,7 @@ def test_orchestrator_with_real_devstral():
     print("\n--- Запуск интеграционного теста ---")
 
     # настройка
-    api_key = "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"
+    api_key = "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"
     agent = DevstralAgent(api_key=api_key)
     tool = FakeUserTool()
     orchestrator = Orchestrator(agent=agent, tools=[tool])
@@ -54,7 +53,6 @@ def test_orchestrator_with_real_devstral():
         answer = orchestrator.process_request(question)
         print(f"Получен ответ: {answer}")
 
-        # проверяем результат только если нет ошибки
         if "К сожалению, произошла ошибка" not in answer:
             assert "Jane Smith" in answer
             assert "client_777" in answer

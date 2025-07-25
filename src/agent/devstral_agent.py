@@ -1,14 +1,12 @@
-# agent/devstral_agent.py
-
 from typing import List, Dict, Any
 from openai import OpenAI, APIError
 from .base_agent import BaseAgent
 
 
 class DevstralAgent(BaseAgent):
-    """Агент для работы с Devstral через OpenRouter"""
+    """Devstral через OpenRouter"""
 
-    def __init__(self, model_name: str = "mistralai/devstral-small-2505:free", api_key: str = None):
+    def __init__(self, model_name: str = "qwen/qwen3-coder:free", api_key: str = None): # заменил пока на квена, он лучше работает)
         super().__init__(model_name)
         self.api_key = api_key
         self.client = OpenAI(
@@ -18,7 +16,7 @@ class DevstralAgent(BaseAgent):
 
     def decide(self, messages: List[Dict[str, Any]], tools: List[Dict[str, Any]] = None) -> Any:
         """Отправляет запрос к модели и получает ответ"""
-        max_retries = 2 # разводка на дауна
+        max_retries = 2
 
         for attempt in range(max_retries):
             try:
@@ -35,7 +33,7 @@ class DevstralAgent(BaseAgent):
                 if not response or not response.choices:
                     error_msg = f"API вернул пустой ответ (попытка {attempt + 1}/{max_retries})"
                     print(error_msg)
-                    if attempt == max_retries - 1:  # последняя попытка
+                    if attempt == max_retries - 1:
                         raise Exception("API возвращает пустые ответы")
                     continue
 
@@ -54,11 +52,11 @@ class DevstralAgent(BaseAgent):
                 if attempt == max_retries - 1:
                     raise e
                 import time
-                time.sleep(1)
+                time.sleep(5)
 
             except Exception as e:
                 print(f"Что-то пошло не так (попытка {attempt + 1}/{max_retries}): {e}")
                 if attempt == max_retries - 1:
                     raise e
                 import time
-                time.sleep(1)
+                time.sleep(5)
